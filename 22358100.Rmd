@@ -1,0 +1,300 @@
+---
+title: "Exploring Global Crop Yield Trends: An Analysis of the Factors Impacting Crop Yields Over Time"
+author: 'https://github.com/satyaandrew/C7083-Assessment.git'
+date: '22358100'
+output: pdf_document
+toc: true
+---
+\newpage
+# 1. Introduction: 
+
+Crop yields are a key component of global food production, providing the world's population with essential staple crops like wheat, rice, maize, and soybeans. However, crop yields are influenced by a complex array of factors, including land use, fertilizer application, and mechanization. In this portfolio, we'll explore trends in global crop yields and investigate how changes in land use, fertilizer use, and tractor density have impacted crop yields over time.
+
+The datasets used in this portfolio are assigned from the GitHub “rfordatascience” that compromised the data from an article from Our World in Data. 
+The article is - Hannah Ritchie, Max Roser and Pablo Rosado (2022) - "Crop Yields". Published online at OurWorldInData.org. Retrieved from: 'https://ourworldindata.org/crop-yields' [Online Resource]
+Five datasets are used to create visualisations for crop yields and countries from 1885 to 2019 but there is limited data up to 1960.
+The datasets are:
+
+## 1.1 Key Crop Yields 
+A dataset with over 13000 observations that give the yield of different crops over the years 1961 to 2018. the following 14 variables are described:
+```{r echo=FALSE, message=FALSE}
+knitr::include_graphics("D:/HAU/Modules/C7083/1.1 true.png")
+```
+
+## 1.2 Arable land
+A dataset with the area of land used for agriculture from years 1961 to 2014 with 11280 observations of 4 variables
+```{r echo=FALSE, message=FALSE}
+knitr::include_graphics("D:/HAU/Modules/C7083/1.2 true.png")
+```
+
+## 1.3 Fertilizer
+A dataset with the recordings of Nitrogen fertilizer use from 1961 to 2018 with 11965 observations.5 variables
+```{r echo=FALSE, message=FALSE}
+knitr::include_graphics("D:/HAU/Modules/C7083/1.3.png")
+```
+
+## 1.4 Land use
+A dataset with recordings of the change in land use for arable agriculture with a range of year from 10000 BCE to 2019 and over 49000 observations. This data contains lots of missing values due to population data having been added from Gapminder. 6 variables
+```{r echo=FALSE, message=FALSE}
+knitr::include_graphics("D:/HAU/Modules/C7083/1.4 land use.png")
+```
+
+## 1.5 Tractor 
+A dataset recording yield of crops and the number of tractors per 100 square kilometres of arable land with a range of years from 10000 BCE to 2019 AD and over 49000 observations. This data contains lots of missing values due to population data having been added from Gapminder. 6 variables
+```{r echo=FALSE, message=FALSE}
+knitr::include_graphics("D:/HAU/Modules/C7083/1.5 tractor.png")
+```
+
+```{r echo=FALSE, message=FALSE}
+library(dplyr)
+library(ggplot2)
+library(maps)
+library(tidyr)
+library(reshape2)
+
+key_crop_yields <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-09-01/key_crop_yields.csv')
+fertilizer <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-09-01/cereal_crop_yield_vs_fertilizer_application.csv')
+tractors <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-09-01/cereal_yields_vs_tractor_inputs_in_agriculture.csv')
+land_use <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-09-01/land_use_vs_yield_change_in_cereal_production.csv')
+arable_land <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-09-01/arable_land_pin.csv')
+```
+
+# 02. Chloropleth map of Wheat yield around the globe in the year 2018
+
+This is a choropleth map of wheat yields by region in the year 2018. Each region is shaded with a color gradient that represents the wheat yield per hectare, with darker shades indicating higher yields. The legend on the right side of the map indicates the range of wheat yields represented by each color.
+
+```{r echo=FALSE, message=FALSE}
+# Filter data for years 1961-2018
+crop_filtered <- key_crop_yields %>%
+  filter(Year >= 1961, Year <= 2018)
+
+# Filter data for the most recent year (2018)
+crop_filtered <- key_crop_yields %>%
+  filter(Year == 2018)
+
+# Load the world map data
+world_map <- map_data("world")
+
+# Merge crop yields data with world map data by country name
+crop_map <- merge(world_map, crop_filtered, by.x = "region", by.y = "Entity")
+
+# Create a choropleth map of crop yields by region
+ggplot(crop_map, aes(x = long, y = lat, group = group, fill = `Wheat (tonnes per hectare)`)) +
+  geom_polygon() +
+  scale_fill_gradient(low = "white", high = "darkgreen", name = "Wheat Yield\n(tonnes per hectare)") +
+  coord_equal() +
+  labs(title = "Wheat Yields by Region (2018)", 
+       x = "", y = "", 
+       fill = "") +
+  theme_void()
+#####
+```
+
+\newpage
+
+# 03. Bar chart of top 5 countries by average crop yield in 2018
+
+This bar chart shows the average wheat yield in 2018 for the top 5 wheat-producing countries. The countries are ranked from left to right based on their yield, with the country with the highest yield on the left and the lowest on the right.
+
+```{r echo=FALSE, message=FALSE}
+# Filter for the most recent year available (2018)
+key_crop_yields_2018 <- key_crop_yields %>% 
+  filter(Year == 2018)
+
+# Filter for 2018 and select top 5 countries by average yield
+
+key_crop_yields_2018 <- key_crop_yields %>%
+  filter(Year == 2018) %>%
+  group_by(Entity) %>%
+  summarise(yield = mean(`Wheat (tonnes per hectare)`, na.rm = TRUE)) %>%
+  top_n(5, yield)
+
+# Create bar chart
+ggplot(key_crop_yields_2018, aes(x = Entity, y = yield, fill = Entity)) +
+  geom_col() +
+  scale_fill_manual(values = c("#F8766D", "#00BFC4", "#E76BF3", "#7CAE00", "#619CFF")) +
+  labs(title = "Top 5 Countries by Average Wheat Yield in 2018",
+       x = "Country",
+       y = "Average Yield (tonnes per hectare)",
+       fill = "") +
+  theme(plot.title = element_text(hjust = 0.5))
+####
+```
+
+\newpage
+
+# 04. Stacked Bar chart for Yields of different crops from 1961 to 2018.
+
+Each bar represents a year and the height of each segment within the bar represents the yield of a specific crop
+```{r echo=FALSE, message=FALSE}
+# Filter data for years 1961-2018
+crop_filtered <- key_crop_yields %>%
+  filter(Year >= 1961, Year <= 2018)
+
+# Reshape data into long format
+crop_long <- crop_filtered %>%
+  pivot_longer(cols = c("Wheat (tonnes per hectare)", "Rice (tonnes per hectare)", "Maize (tonnes per hectare)", "Soybeans (tonnes per hectare)", "Potatoes (tonnes per hectare)", "Beans (tonnes per hectare)", "Peas (tonnes per hectare)", "Cassava (tonnes per hectare)", "Barley (tonnes per hectare)", "Cocoa beans (tonnes per hectare)", "Bananas (tonnes per hectare)"), 
+               names_to = "Crop Type", 
+               values_to = "Yield")
+
+# Create a stacked bar chart with different colors for each crop
+ggplot(crop_long, aes(x = Year, y = Yield, fill = `Crop Type`)) +
+  geom_bar(stat = "identity") +
+  labs(x = "Year", y = "Crop Yield (tonnes per hectare)", 
+       fill = "Crop Type",
+       title = "Crop Yields by Year") +
+  theme_minimal() +
+  scale_fill_manual(values = c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "#999999", "#EFEFEF", "#000000", "#8B0000"))
+
+####
+```
+
+
+\newpage
+
+# 05. Arable land use line chart
+
+A line chart showing the trend in arable land use for the world over time. The x-axis represents the year, while the y-axis represents the arable land needed to produce a fixed quantity of crops. The line plot shows the changes in the amount of arable land needed over time.
+```{r echo=FALSE, message=FALSE}
+
+# Filter for world data only
+arable_land_world <- arable_land[arable_land$Entity == "World",]
+
+# Plot the line chart
+ggplot(arable_land_world, aes(x = Year, y = `Arable land needed to produce a fixed quantity of crops ((1.0 = 1961))`)) +
+  geom_line(color = "blue") +
+  scale_x_continuous(breaks = seq(min(arable_land_world$Year), max(arable_land_world$Year), by = 5)) +
+  theme_minimal() +
+  labs(title = "Trend in Arable Land Use for the World over Time",
+       x = "Year",
+       y = "Arable Land Use")
+####
+```
+\newpage
+
+# 06.Relation between fertilizer use and cereal yield in Scatter plot
+
+
+A scatter plot showing the relationship between nitrogen fertilizer use (in kilograms per hectare) and cereal yield (in tonnes per hectare). Each point on the plot represents a different country. The red line represents the linear regression line fitted to the data, showing the overall trend in the data. The plot suggests a positive relationship between fertilizer use and cereal yield, with countries using higher amounts of nitrogen fertilizer generally having higher cereal yields.
+
+```{r echo=FALSE, message=FALSE}
+
+
+# Filter data for years 1961-2018
+fertilizer_filtered <- fertilizer %>%
+  filter(Year >= 1961, Year <= 2018)
+
+# Create a scatter plot of fertilizer use and cereal yield
+ggplot(fertilizer_filtered, aes(x = `Nitrogen fertilizer use (kilograms per hectare)`, y = `Cereal yield (tonnes per hectare)`)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, color = "red") +
+  labs(x = "Nitrogen fertilizer use (kg/ha)", y = "Cereal yield (tonnes/ha)", 
+       title = "Relationship between Fertilizer Use and Cereal Yield") +
+  theme_minimal() +
+  scale_x_continuous(limits = c(0, NA), expand = c(0, 0)) +
+  scale_y_continuous(limits = c(0, NA), expand = c(0, 0))
+####
+```
+
+\newpage
+
+# 07.Heatmap showing the correlation between crop yields.
+
+The heatmap visualizes the correlation between different crop yields. The correlation values are displayed as colors, with red indicating negative correlation, green indicating positive correlation, and white indicating no correlation.
+
+```{r echo=FALSE, message=FALSE}
+# create correlation matrix for crop yields
+corr_mat <- cor(key_crop_yields[,4:13])
+
+# melt correlation matrix into dataframe
+corr_df <- melt(corr_mat)
+
+# rename columns
+colnames(corr_df) <- c("Crop 1", "Crop 2", "Correlation")
+
+# create heatmap
+ggplot(corr_df, aes(x = `Crop 1`, y = `Crop 2`, fill = Correlation)) +
+  geom_tile(color = "white") +
+  scale_fill_gradient2(low = "red", high = "green", midpoint = 0, 
+                       name = "Correlation", guide = guide_colorbar(reverse = TRUE)) +
+  theme_minimal() +
+  labs(title = "Correlation between Crop Yields",
+       x = "Crop Type",
+       y = "Crop Type")
+####
+```
+\newpage
+
+# 08. Comparing two countries for Fertilizer use and yield
+
+## 08.1 Line chart
+A line chart of the data, with the x-axis representing years and the y-axis representing nitrogen fertilizer use. The lines are colored by country, with India shown in one color and the UK in another. The plot shows the trend in fertilizer use for the two countries over time.
+
+```{r echo=FALSE, message=FALSE}
+# Filter data for India and United Kingdom for years 2002-2017
+fert_filtered <- fertilizer %>%
+  filter(Entity %in% c("India", "United Kingdom"), Year >= 2002, Year <= 2017)
+
+
+ggplot(fert_filtered, aes(x = Year, y = `Nitrogen fertilizer use (kilograms per hectare)`, color = Entity)) +
+  geom_line() +
+  labs(title = "Fertilizer Use Over Time",
+       x = "Year",
+       y = "Nitrogen fertilizer use (kg/ha)",
+       color = "Country") +
+  theme_minimal()
+####
+```
+
+## 08.2 Dodged bar chart
+
+The plot suggests that the United Kingdom consistently had higher cereal yields than India over the 2002-2017 period. The yields for both countries seem to fluctuate over time, with some years having higher yields than others.
+```{r echo=FALSE, message=FALSE}
+ggplot(fert_filtered, aes(x = Year, y = `Cereal yield (tonnes per hectare)`, fill = Entity)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  scale_fill_manual(values = c("#E69F00", "#56B4E9")) +
+  labs(x = "Year", y = "Cereal Yield (tonnes per hectare)", title = "Cereal Yield for India and UK (2002-2017)")
+####
+```
+
+# 09. Conclusion
+In conclusion, global crop yields are a complex and multifaceted topic that requires a holistic approach to analysis. By examining trends in global crop yields and investigating the impact of various factors like land use, fertilizer use, and mechanization, we can gain a better understanding of the challenges and opportunities facing global food production. With careful planning and thoughtful policy decisions, we can work towards a more sustainable and resilient global food system that can meet the needs of a growing population in the years to come.
+
+\newpage
+# 10. Critique
+
+## 10.1 Good Visualization
+
+The data visualization in appendix 1 shows the percentage of people living in poverty in India, divided into different states. The colours used in the map represent different levels of poverty, with the darker shade of red indicating a higher percentage of people living in poverty. The strengths of this visualization are its simplicity and effectiveness in communicating the overall pattern of poverty in India. The map provides a clear visual representation of the percentage of people living in poverty in each state, allowing the viewer to quickly compare poverty levels across different regions. First, the use of a map is generally an effective way to convey geographic data, and the choice of a colour gradient to represent the percentage of people below the poverty line is visually intuitive. Second, the legend is clear and concise, with a simple colour scale and clear category labels. This makes it easy for the viewer to understand the data being presented. Finally, the title and caption provide additional context and information about the data being presented, which is helpful for understanding the significance of the visualization. Overall, while there may be some room for improvement in terms of visual design and interactivity, the image appears to be a clear and effective representation of the percentage of people living below the poverty line in India.
+
+## 10.2 Bad Visualization
+
+Appendix 2 pie chart is a poor example of data visualization for several reasons. It attempts to show Cricketers’ salaries. Firstly, it fails to accurately represent the data. The chart does not add up to 360 degrees, which is the standard measure for pie charts. This makes it difficult to compare the different slices accurately and undermines the chart's effectiveness. Secondly, the colour coding used in the chart is inconsistent and does not serve any purpose. The colours used for each slice of the chart do not convey any meaningful information, and the choice of colours appears to be random. This makes it difficult for the viewer to understand the data and reduces the chart's effectiveness. Furthermore, the labels used in the chart are unclear and do not provide adequate information. The chart lacks a title, and it is unclear what exactly the chart is representing. The labels used for the slices are also not clear, as they do not include any specific numbers or percentages. Finally, the chart is not visually appealing, and it lacks any design elements to make it more engaging. The use of a simple pie chart with no additional visuals or design elements makes the chart uninteresting and difficult to interpret. The inaccurate representation of the data, inconsistent use of colour, unclear labelling, and lack of visual appeal make it difficult for viewers to understand and engage with the data.
+
+\newpage
+# 11. References
+
+Midway, S.R., 2020. Principles of effective data visualization. Patterns, 1(9), p.100141.
+
+Imgur 2023 from:https://imgur.com/a/uvjRNYu [Accessed on 02-03-2023]
+
+Reddit 2023 u/cough__potato [online] Available from:https://www.reddit.com/r/IndiaSpeaks/comments/11ioey4/we_might_all_knew_this_but_organized_data_helps/ [Accessed on 05-03-2023]
+
+\newpage
+# 12.Appendices
+
+## 12.1 Appendix 1,Example for good visualization 
+
+```{r echo=FALSE, message=FALSE}
+knitr::include_graphics("D:/HAU/Modules/C7083/RDT.png")
+```
+
+## 12.2 Appendix 2,Example for bad visualization
+
+```{r echo=FALSE, message=FALSE}
+knitr::include_graphics("D:/HAU/Modules/C7083/bad vis.png")
+```
+
+
+
+
